@@ -1,0 +1,4 @@
+<div class="map-container" leaflet [leafletOptions]="options" [leafletLayersControl]="layersControl"
+     (leafletMapReady)="onMapReady($event)"></div>
+<leaflet-locate-control [map]="map" (location$)="onNewLocation($event)">
+</leaflet-locate-control>
