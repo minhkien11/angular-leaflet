@@ -1,4 +1,14 @@
-<div class="map-container" leaflet [leafletOptions]="options" [leafletLayersControl]="layersControl"
-     (leafletMapReady)="onMapReady($event)"></div>
-<leaflet-locate-control [map]="map" (location$)="onNewLocation($event)">
-</leaflet-locate-control>
+<div class="map-container">
+     <div id="map">
+          <div *ngIf="isContextMenu" class="contextmenu" [ngStyle]="{'left.px': conMenuX, 'top.px': conMenuY}">
+               <button style="width: 100%;" (click)="addStaticMarker()">Add marker</button>
+               <button style="width: 100%;" (click)="addCircle()">Add point circle</button>
+               <button style="width: 100%;" (click)="addPointPolyline(0)" *ngIf="!isPointPolyline">Add point polyline</button>
+               <button style="width: 100%;" (click)="addPointPolyline(1)" *ngIf="isPointPolyline">Add more point polyline</button>
+               <button style="width: 100%;" (click)="addPointPolyline(2)" *ngIf="isPointPolyline">End polyline</button>
+               <button style="width: 100%;" (click)="addPointPolygon(0)" *ngIf="!isPointPolygon">Add point polygon</button>
+               <button style="width: 100%;" (click)="addPointPolygon(1)" *ngIf="isPointPolygon">Add more point polygon</button>
+               <button style="width: 100%;" (click)="addPointPolygon(2)" *ngIf="isPointPolygon">End polygon</button>
+          </div>
+     </div>
+</div>

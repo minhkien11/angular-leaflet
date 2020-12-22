@@ -1,106 +1,250 @@
-/// <reference types='leaflet.locatecontrol' />
-/// <reference types='leaflet-loading' />
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Map, Control, DomUtil, Layer, MapOptions, tileLayer, latLng, LeafletEvent, LocationEvent, circle, polygon } from 'leaflet';
+import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
+import { Map, Control, DomUtil, TileLayer, LayerGroup, Circle, LeafletMouseEvent, Icon, Marker, LatLng, Polyline, Polygon } from 'leaflet';
+import { ApiService } from '../core/api/api.service';
 
 @Component({
     selector: 'app-map',
     templateUrl: './map.component.html',
-    styleUrls: ['./map.component.css',]
+    styleUrls: ['./map.component.css']
 })
-export class MapComponent implements OnInit, OnDestroy {
+export class MapComponent implements OnInit, AfterViewInit {
 
-    //Khởi tạo thông tin map ban đầu
-    options: MapOptions = {
-        layers: [tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        })],
-        zoom: 14,
-        center: latLng(20.976004534102742, 105.83567886166948)
-    };
-
-    public map: any;
-    public zoom: number = 0;
-    public location = "";
-
-    //add custom control
-    setCustomControl() {
-        let div = DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-        div.style.backgroundColor = 'white';
-        div.style.backgroundImage = "url(https://t1.gstatic.com/images?q=tbn:ANd9GcR6FCUMW5bPn8C4PbKak2BJQQsmC-K9-mbYBeFZm1ZM2w2GRy40Ew)";
-        div.style.backgroundSize = "30px 30px";
-        div.style.width = '30px';
-        div.style.height = '30px';
-
-        div.onclick = () =>{
-            console.log(12,'Nút custom control click')
-        }
-
-        let info = new Control({ position: 'topright' });
-        info.onAdd = () => {
-            return div;
-        };
-        info.addTo(this.map);
-    }
-
-    constructor() {
+    constructor(private aService: ApiService) {
     }
 
     ngOnInit() {
 
     }
 
-    ngOnDestroy() {
-        //Xóa map khi xóa component
-        this.map.clearAllEventListeners;
-        this.map.remove();
+    public map: Map | undefined;
+
+    //Tạo các map layer
+    private osmLayer = new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+    private otmLayer = new TileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        maxZoom: 17,
+        attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    });
+
+    //Tạo các overlay
+    private ormOverlays = new TileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.OpenRailwayMap.org">OpenRailwayMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    });
+    private cCircle = new Circle([20.976004534102742, 105.83567886166948], { radius: 1000 });
+
+    //Tạo overlay group
+    private layerGroup = new LayerGroup([this.ormOverlays, this.cCircle]);
+
+    //Nhóm base layers
+    private mapLayers = {
+        "Open Street Map": this.osmLayer,
+        "Open Topo Map": this.otmLayer,
     };
-
-    //Sau khi map đã hiển thị
-    onMapReady(map: Map) {
-        this.map = map;
-
-        this.setCustomControl();
+    //Nhóm overlays
+    private mapOverlays = {
+        "Open Railway Map": this.ormOverlays,
+        "Circle": this.cCircle
     }
 
-    //Lấy thông tin location
-    onNewLocation(location: LocationEvent) {
-        this.location = location.latlng.toString();
+
+    ngAfterViewInit() {
+        this.map = new Map('map', {
+            layers: [this.osmLayer],
+            center: [20.976004534102742, 105.83567886166948],
+            zoom: 8
+        });
+
+        this.setCustomControlAddStaticMarker();
+        this.setCustomControlAddMovingMarker();
+        //Thêm các layer group vào map
+        new Control.Layers(this.mapLayers, this.mapOverlays).addTo(this.map);
+        this.map.addEventListener('contextmenu', (e: LeafletMouseEvent) => { this.openContextmenu(e) });
+        this.map.addEventListener('click', () => this.isContextMenu = false);
     }
 
-    //Set thuộc tính cho nút locate
-    public locateOptions: Control.LocateOptions = {
-        setView: false,
-        flyTo: false,
-        keepCurrentZoomLevel: true,
-        locateOptions: {
-            enableHighAccuracy: true,
-        },
-        icon: 'material-icons md-18 target icon',
-        clickBehavior: {
-            inView: 'stop',
-            outOfView: 'setView',
-            inViewNotFollowing: 'setView'
+    //#region 2 nút custom control tạo marker
+    //add custom control tạo 10 marker tĩnh
+    setCustomControlAddStaticMarker() {
+        let div = DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        div.style.backgroundColor = 'white';
+        div.style.backgroundImage = "url('/assets/images/locate icon black.png')";
+        div.style.backgroundSize = "30px 30px";
+        div.style.width = '30px';
+        div.style.height = '30px';
+
+        div.onclick = () => {
+            this.addRandomStaticMarkers();
         }
-    };
 
-    //Set layer
-    layersControl = {
-        baseLayers: {
-            'Open Street Map': tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-            }),
-            'Open Topo Map': tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                maxZoom: 17,
-            }),
-            'Open Railway Map': tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-            })
+        let info = new Control({ position: 'topright' });
+        info.onAdd = () => {
+            return div;
+        };
+        info.addTo(this.map!);
+    }
+
+
+
+    //add custom control tạo 10 marker động
+    setCustomControlAddMovingMarker() {
+        let div = DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        div.style.backgroundColor = 'white';
+        div.style.backgroundImage = "url('/assets/images/locate icon red.png')";
+        div.style.backgroundSize = "30px 30px";
+        div.style.width = '30px';
+        div.style.height = '30px';
+
+        div.onclick = () => {
+            this.addRandomMovingMarkers();
+        }
+
+        let info = new Control({ position: 'topright' });
+        info.onAdd = () => {
+            return div;
+        };
+        info.addTo(this.map!);
+    }
+
+    //Tạo random marker
+    //Icon cho marker
+    private locateIcon: any = Icon.extend({
+        options: {
+            iconSize: [38, 38],
+            iconAnchor: [22, 94],
+            popupAnchor: [-3, -76],
         },
-        overlays: {
-            'Big Circle': circle([20.976004534102742, 105.83567886166948], { radius: 1000 }),
-            'Big Square': polygon([[20.976004534102742, 105.83567886166948], [21.976004534112742, 106.83567886066948], [22.976004534202742, 107.83567886366948], [23.976004534152742, 108.83567886176948]])
+    });
+
+    //Tạo random 10 marker đứng yên
+    addRandomStaticMarkers() {
+        for (let i = 0; i < 50; i++) {
+            this.add1RandomStaticMarker();
         }
     }
 
+    //Tạo random marker đứng yên
+    add1RandomStaticMarker() {
+        let y = this.generateRandomNumber(20.4, 22.3)
+        let x = this.generateRandomNumber(103, 106.6)
+        let newBlackIcon = new this.locateIcon({ iconUrl: '/assets/images/locate icon black.png' });
+        let newMarker = new Marker([y, x], { icon: newBlackIcon, draggable: true });
+        newMarker.addTo(this.map!).bindTooltip('Static marker!').bindPopup(newMarker.getLatLng().toString());
+    }
+
+    //Tạo random 50 marker đứng yên
+    addRandomMovingMarkers() {
+        for (let i = 0; i < 50; i++) {
+            this.add1RandomMovingMarker();
+        }
+    }
+
+    //Tạo random marker di chuyển
+    add1RandomMovingMarker() {
+        let y = this.generateRandomNumber(20.4, 22.3)
+        let x = this.generateRandomNumber(103, 106.6)
+        let newRedIcon = new this.locateIcon({ iconUrl: '/assets/images/locate icon red.png' });
+        let newMarker = new Marker([y, x], { icon: newRedIcon });
+        newMarker.addTo(this.map!).bindTooltip('Moving marker!');
+        this.randomMoving(newMarker, x, y);
+    }
+
+    randomMoving(marker: Marker, x: number, y: number) {
+        setInterval(() => {
+            x = x + ((Math.random() * 0.5) - 0.25) * 0.02;
+            y = y + ((Math.random() * 1) - 0.5) * 0.02;
+            marker.setLatLng([y, x]);
+            marker.bindPopup(marker.getLatLng().toString())
+        }, 500)
+    }
+
+    private generateRandomNumber(min: number, max: number): number {
+        return Math.random() * (max - min) + min;
+    }
+    //#endregion
+
+
+    //#region Custom context menu
+    isContextMenu = false;
+    conMenuX = 0;
+    conMenuY = 0;
+    contextMenuLatLng = new LatLng(0, 0);
+    isPointPolyline = false;
+    currentPointPolylineLatLng = new LatLng(0, 0);
+    isPointPolygon = false;
+    lstLatLngPolygon: LatLng[] = [];
+    currentPolygon: Polygon | undefined;
+    newPolygon: Polygon | undefined;
+
+    openContextmenu(event: LeafletMouseEvent) {
+        this.conMenuX = event.containerPoint.x;
+        this.conMenuY = event.containerPoint.y;
+        this.contextMenuLatLng = event.latlng;
+        this.isContextMenu = true;
+        console.log(this.contextMenuLatLng);
+    }
+    disableContextMenu() {
+        this.isContextMenu = false;
+    }
+
+    //Thêm marker
+    addStaticMarker() {
+        let newBlueIcon = new this.locateIcon({ iconUrl: '/assets/images/locate icon blue.png' });
+        let newMarker = new Marker(this.contextMenuLatLng, { icon: newBlueIcon, draggable: true });
+        newMarker.addTo(this.map!).bindTooltip('Added marker!').bindPopup(newMarker.getLatLng().toString());
+    }
+
+    //Thêm circle
+    addCircle() {
+        new Circle(this.contextMenuLatLng, { radius: 5000 }).addTo(this.map!);
+    }
+
+    //Vẽ polyline
+    addPointPolyline(type: number) {
+        if (type == 0) {
+            this.currentPointPolylineLatLng = this.contextMenuLatLng;
+            this.isPointPolyline = true;
+        }
+        else if (type == 1) {
+            new Polyline([this.contextMenuLatLng, this.currentPointPolylineLatLng], {
+                color: 'red',
+                weight: 3
+            }).addTo(this.map!).bindTooltip('Added polyline!');
+            this.currentPointPolylineLatLng = this.contextMenuLatLng;
+        }
+        else
+        {
+            this.isPointPolyline = false;
+        }
+    }
+
+    //Vẽ polygon
+    addPointPolygon(type: number){
+        if (type == 0) {
+            this.lstLatLngPolygon = [];
+            this.lstLatLngPolygon.push(this.contextMenuLatLng);
+            this.isPointPolygon = true;
+        }
+        else if (type == 1) {
+            this.lstLatLngPolygon.push(this.contextMenuLatLng);
+            this.currentPolygon?.remove();
+            this.currentPolygon = new Polygon(this.lstLatLngPolygon, {
+                color: 'blue',
+                weight: 3
+            }).addTo(this.map!).bindTooltip('Added polygon!');
+        }
+        else
+        {
+            this.newPolygon = this.currentPolygon;
+            this.currentPolygon?.remove();
+            this.newPolygon = new Polygon(this.lstLatLngPolygon, {
+                color: 'blue',
+                weight: 3
+            }).addTo(this.map!).bindTooltip('Added polygon!');
+            this.isPointPolygon = false;
+        }
+    }
+    //#endregion
 }
