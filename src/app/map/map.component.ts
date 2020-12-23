@@ -1,22 +1,21 @@
-import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
-import { Map, Control, DomUtil, TileLayer, LayerGroup, Circle, LeafletMouseEvent, Icon, Marker, LatLng, Polyline, Polygon } from 'leaflet';
+import { Component, AfterViewInit } from '@angular/core';
+import { Map, Control, DomUtil, TileLayer, LayerGroup, Circle, LeafletMouseEvent, Icon, Marker, LatLng, Polyline, Polygon, MarkerClusterGroup, DivIcon, Point } from 'leaflet';
 import { ApiService } from '../core/api/api.service';
+import 'leaflet.markercluster';
 
 @Component({
     selector: 'app-map',
     templateUrl: './map.component.html',
     styleUrls: ['./map.component.css']
 })
-export class MapComponent implements OnInit, AfterViewInit {
+export class MapComponent implements AfterViewInit {
 
     constructor(private aService: ApiService) {
     }
 
-    ngOnInit() {
 
-    }
-
-    public map: Map | undefined;
+    //#region Tạo các layer và các overlay
+    private map: Map | undefined;
 
     //Tạo các map layer
     private osmLayer = new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -35,9 +34,6 @@ export class MapComponent implements OnInit, AfterViewInit {
     });
     private cCircle = new Circle([20.976004534102742, 105.83567886166948], { radius: 1000 });
 
-    //Tạo overlay group
-    private layerGroup = new LayerGroup([this.ormOverlays, this.cCircle]);
-
     //Nhóm base layers
     private mapLayers = {
         "Open Street Map": this.osmLayer,
@@ -48,6 +44,7 @@ export class MapComponent implements OnInit, AfterViewInit {
         "Open Railway Map": this.ormOverlays,
         "Circle": this.cCircle
     }
+    //#endregion
 
 
     ngAfterViewInit() {
@@ -57,16 +54,26 @@ export class MapComponent implements OnInit, AfterViewInit {
             zoom: 8
         });
 
-        this.setCustomControlAddStaticMarker();
-        this.setCustomControlAddMovingMarker();
         //Thêm các layer group vào map
-        new Control.Layers(this.mapLayers, this.mapOverlays).addTo(this.map);
+        new Control.Layers(this.mapLayers, this.mapOverlays, { position: 'topright' }).addTo(this.map);
+
+        //Thêm 2 nút tạo marker
+        this.setCustomControlAddStaticMarker();
+        this.setCustomControlAddDynamicMarker();
+
+        //Chức năng event
         this.map.addEventListener('contextmenu', (e: LeafletMouseEvent) => { this.openContextmenu(e) });
         this.map.addEventListener('click', () => this.isContextMenu = false);
+
+        //Thêm layer cluster
+        this.markerClusterGroup.addTo(this.map!);
     }
 
     //#region 2 nút custom control tạo marker
-    //add custom control tạo 10 marker tĩnh
+
+    private markerClusterGroup = new MarkerClusterGroup({ animate: false });
+
+    //add custom control tạo marker tĩnh
     setCustomControlAddStaticMarker() {
         let div = DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
         div.style.backgroundColor = 'white';
@@ -79,17 +86,15 @@ export class MapComponent implements OnInit, AfterViewInit {
             this.addRandomStaticMarkers();
         }
 
-        let info = new Control({ position: 'topright' });
+        let info = new Control({ position: 'topleft' });
         info.onAdd = () => {
             return div;
         };
         info.addTo(this.map!);
     }
 
-
-
-    //add custom control tạo 10 marker động
-    setCustomControlAddMovingMarker() {
+    //add custom control tạo marker động
+    setCustomControlAddDynamicMarker() {
         let div = DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
         div.style.backgroundColor = 'white';
         div.style.backgroundImage = "url('/assets/images/locate icon red.png')";
@@ -98,59 +103,50 @@ export class MapComponent implements OnInit, AfterViewInit {
         div.style.height = '30px';
 
         div.onclick = () => {
-            this.addRandomMovingMarkers();
+            this.addRandomDynamicMarkers();
         }
 
-        let info = new Control({ position: 'topright' });
+        let info = new Control({ position: 'topleft' });
         info.onAdd = () => {
             return div;
         };
         info.addTo(this.map!);
     }
 
-    //Tạo random marker
-    //Icon cho marker
-    private locateIcon: any = Icon.extend({
-        options: {
-            iconSize: [38, 38],
-            iconAnchor: [22, 94],
-            popupAnchor: [-3, -76],
-        },
-    });
-
-    //Tạo random 10 marker đứng yên
+    //Tạo random nhiều marker tĩnh
     addRandomStaticMarkers() {
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 100; i++) {
             this.add1RandomStaticMarker();
         }
     }
 
-    //Tạo random marker đứng yên
+    //Tạo random marker tĩnh
     add1RandomStaticMarker() {
         let y = this.generateRandomNumber(20.4, 22.3)
         let x = this.generateRandomNumber(103, 106.6)
-        let newBlackIcon = new this.locateIcon({ iconUrl: '/assets/images/locate icon black.png' });
+        let newBlackIcon = new Icon({ iconUrl: '/assets/images/locate icon black.png', iconSize: [35, 35] });
         let newMarker = new Marker([y, x], { icon: newBlackIcon, draggable: true });
-        newMarker.addTo(this.map!).bindTooltip('Static marker!').bindPopup(newMarker.getLatLng().toString());
+        newMarker.addTo(this.markerClusterGroup).bindTooltip('Static marker!').bindPopup(newMarker.getLatLng().toString());
     }
 
-    //Tạo random 50 marker đứng yên
-    addRandomMovingMarkers() {
-        for (let i = 0; i < 50; i++) {
-            this.add1RandomMovingMarker();
+    //Tạo random nhiều marker động
+    addRandomDynamicMarkers() {
+        for (let i = 0; i < 100; i++) {
+            this.add1RandomDynamicMarker();
         }
     }
 
-    //Tạo random marker di chuyển
-    add1RandomMovingMarker() {
+    //Tạo random marker động
+    add1RandomDynamicMarker() {
         let y = this.generateRandomNumber(20.4, 22.3)
         let x = this.generateRandomNumber(103, 106.6)
-        let newRedIcon = new this.locateIcon({ iconUrl: '/assets/images/locate icon red.png' });
+        let newRedIcon = new Icon({ iconUrl: '/assets/images/locate icon red.png', iconSize: [35, 35] });
         let newMarker = new Marker([y, x], { icon: newRedIcon });
-        newMarker.addTo(this.map!).bindTooltip('Moving marker!');
+        newMarker.addTo(this.markerClusterGroup).bindTooltip('Moving marker!');
         this.randomMoving(newMarker, x, y);
     }
 
+    //Set chuyển động ngẫu nhiên cho marker
     randomMoving(marker: Marker, x: number, y: number) {
         setInterval(() => {
             x = x + ((Math.random() * 0.5) - 0.25) * 0.02;
@@ -160,6 +156,7 @@ export class MapComponent implements OnInit, AfterViewInit {
         }, 500)
     }
 
+    //Tạo số ngẫu nhiên
     private generateRandomNumber(min: number, max: number): number {
         return Math.random() * (max - min) + min;
     }
@@ -176,14 +173,12 @@ export class MapComponent implements OnInit, AfterViewInit {
     isPointPolygon = false;
     lstLatLngPolygon: LatLng[] = [];
     currentPolygon: Polygon | undefined;
-    newPolygon: Polygon | undefined;
 
     openContextmenu(event: LeafletMouseEvent) {
         this.conMenuX = event.containerPoint.x;
         this.conMenuY = event.containerPoint.y;
         this.contextMenuLatLng = event.latlng;
         this.isContextMenu = true;
-        console.log(this.contextMenuLatLng);
     }
     disableContextMenu() {
         this.isContextMenu = false;
@@ -191,14 +186,14 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     //Thêm marker
     addStaticMarker() {
-        let newBlueIcon = new this.locateIcon({ iconUrl: '/assets/images/locate icon blue.png' });
+        let newBlueIcon = new Icon({ iconUrl: '/assets/images/locate icon blue.png', iconSize: [35, 35] });
         let newMarker = new Marker(this.contextMenuLatLng, { icon: newBlueIcon, draggable: true });
-        newMarker.addTo(this.map!).bindTooltip('Added marker!').bindPopup(newMarker.getLatLng().toString());
+        newMarker.addTo(this.markerClusterGroup).bindTooltip('Added marker!').bindPopup(newMarker.getLatLng().toString());
     }
 
     //Thêm circle
     addCircle() {
-        new Circle(this.contextMenuLatLng, { radius: 5000 }).addTo(this.map!);
+        new Circle(this.contextMenuLatLng, { radius: 5000 }).addTo(this.map!).bindTooltip('Added circle!');
     }
 
     //Vẽ polyline
@@ -214,16 +209,16 @@ export class MapComponent implements OnInit, AfterViewInit {
             }).addTo(this.map!).bindTooltip('Added polyline!');
             this.currentPointPolylineLatLng = this.contextMenuLatLng;
         }
-        else
-        {
+        else {
             this.isPointPolyline = false;
         }
     }
 
     //Vẽ polygon
-    addPointPolygon(type: number){
+    addPointPolygon(type: number) {
         if (type == 0) {
             this.lstLatLngPolygon = [];
+            this.currentPolygon = new Polygon(this.lstLatLngPolygon,);
             this.lstLatLngPolygon.push(this.contextMenuLatLng);
             this.isPointPolygon = true;
         }
@@ -235,14 +230,7 @@ export class MapComponent implements OnInit, AfterViewInit {
                 weight: 3
             }).addTo(this.map!).bindTooltip('Added polygon!');
         }
-        else
-        {
-            this.newPolygon = this.currentPolygon;
-            this.currentPolygon?.remove();
-            this.newPolygon = new Polygon(this.lstLatLngPolygon, {
-                color: 'blue',
-                weight: 3
-            }).addTo(this.map!).bindTooltip('Added polygon!');
+        else {
             this.isPointPolygon = false;
         }
     }

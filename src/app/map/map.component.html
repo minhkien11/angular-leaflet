@@ -1,14 +1,14 @@
 <div class="map-container">
      <div id="map">
           <div *ngIf="isContextMenu" class="contextmenu" [ngStyle]="{'left.px': conMenuX, 'top.px': conMenuY}">
-               <button style="width: 100%;" (click)="addStaticMarker()">Add marker</button>
-               <button style="width: 100%;" (click)="addCircle()">Add point circle</button>
-               <button style="width: 100%;" (click)="addPointPolyline(0)" *ngIf="!isPointPolyline">Add point polyline</button>
-               <button style="width: 100%;" (click)="addPointPolyline(1)" *ngIf="isPointPolyline">Add more point polyline</button>
-               <button style="width: 100%;" (click)="addPointPolyline(2)" *ngIf="isPointPolyline">End polyline</button>
-               <button style="width: 100%;" (click)="addPointPolygon(0)" *ngIf="!isPointPolygon">Add point polygon</button>
-               <button style="width: 100%;" (click)="addPointPolygon(1)" *ngIf="isPointPolygon">Add more point polygon</button>
-               <button style="width: 100%;" (click)="addPointPolygon(2)" *ngIf="isPointPolygon">End polygon</button>
+               <button style="width: 100%;" (click)="addStaticMarker()">Thêm marker</button>
+               <button style="width: 100%;" (click)="addCircle()">Thêm circle</button>
+               <button style="width: 100%;" (click)="addPointPolyline(0)" *ngIf="!isPointPolyline">Tạo điểm đầu polyline</button>
+               <button style="width: 100%;" (click)="addPointPolyline(1)" *ngIf="isPointPolyline">Thêm điểm vẽ polyline</button>
+               <button style="width: 100%;" (click)="addPointPolyline(2)" *ngIf="isPointPolyline">Kết thúc vẽ polyline</button>
+               <button style="width: 100%;" (click)="addPointPolygon(0)" *ngIf="!isPointPolygon">Tạo điểm đầu polygon</button>
+               <button style="width: 100%;" (click)="addPointPolygon(1)" *ngIf="isPointPolygon">Thêm điểm vẽ polygon</button>
+               <button style="width: 100%;" (click)="addPointPolygon(2)" *ngIf="isPointPolygon">Kết thúc vẽ polygon</button>
           </div>
      </div>
 </div>

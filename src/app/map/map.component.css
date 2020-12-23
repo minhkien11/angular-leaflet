@@ -10,8 +10,7 @@
 
 .contextmenu{
   position: absolute;
-box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.5);
-height: 100px;
-width: 100px;
-z-index: 1000;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+  width: 200px;
+  z-index: 1000;
 }
