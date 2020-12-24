@@ -1,14 +1,3 @@
 <div class="map-container">
-     <div id="map">
-          <div *ngIf="isContextMenu" class="contextmenu" [ngStyle]="{'left.px': conMenuX, 'top.px': conMenuY}">
-               <button style="width: 100%;" (click)="addStaticMarker()">Thêm marker</button>
-               <button style="width: 100%;" (click)="addCircle()">Thêm circle</button>
-               <button style="width: 100%;" (click)="addPointPolyline(0)" *ngIf="!isPointPolyline">Tạo điểm đầu polyline</button>
-               <button style="width: 100%;" (click)="addPointPolyline(1)" *ngIf="isPointPolyline">Thêm điểm vẽ polyline</button>
-               <button style="width: 100%;" (click)="addPointPolyline(2)" *ngIf="isPointPolyline">Kết thúc vẽ polyline</button>
-               <button style="width: 100%;" (click)="addPointPolygon(0)" *ngIf="!isPointPolygon">Tạo điểm đầu polygon</button>
-               <button style="width: 100%;" (click)="addPointPolygon(1)" *ngIf="isPointPolygon">Thêm điểm vẽ polygon</button>
-               <button style="width: 100%;" (click)="addPointPolygon(2)" *ngIf="isPointPolygon">Kết thúc vẽ polygon</button>
-          </div>
-     </div>
+     <div id="map"></div>
 </div>
